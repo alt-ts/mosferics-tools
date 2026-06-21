@@ -28,28 +28,28 @@ SCRIPT_NAME    = "generate_price_list.py"
 
 # Install location — a folder in the user's home directory
 INSTALL_DIR    = Path.home() / "MosfericsTools"
-
+ 
 REQUIRED_PACKAGES = ["reportlab", "openpyxl", "Pillow", "pypdf", "numpy"]
-
+ 
 _venv_python = None  # set if we fall back to a venv
 IS_WINDOWS = platform.system() == "Windows"
 IS_MAC     = platform.system() == "Darwin"
-
+ 
 # ── Helpers ────────────────────────────────────────────────────────────────
 def log(msg):
     print(f"  {msg}")
-
+ 
 def run(cmd, check=True, capture=False):
     kwargs = dict(check=check)
     if capture:
         kwargs['capture_output'] = True
         kwargs['text'] = True
     return subprocess.run(cmd, **kwargs)
-
+ 
 def python_ok():
     """Check Python version is 3.8+"""
     return sys.version_info >= (3, 8)
-
+ 
 def pip_install(packages):
     log(f"Installing: {', '.join(packages)}")
     # Try standard install first, then --user as fallback
@@ -76,7 +76,7 @@ def pip_install(packages):
     # Update sys.executable so the shortcut uses the venv python
     global _venv_python
     _venv_python = str(venv_python)
-
+ 
 def download_script(url, dest):
     log(f"Downloading latest script from GitHub...")
     try:
@@ -90,7 +90,7 @@ def download_script(url, dest):
         log(f"Warning: Could not download from GitHub ({e})")
         log("You can update manually later by re-running the installer.")
         return False
-
+ 
 def create_windows_shortcut(script_path):
     """Create a .bat launcher + a desktop shortcut on Windows."""
     # Create a .bat launcher in the install dir
@@ -101,7 +101,7 @@ def create_windows_shortcut(script_path):
         f'"{python_exe}" "{script_path}"\n',
         encoding='utf-8'
     )
-
+ 
     # Try to create a proper .lnk shortcut on the desktop using PowerShell
     desktop = Path.home() / "Desktop"
     shortcut_path = desktop / f"{APP_NAME}.lnk"
@@ -122,17 +122,21 @@ def create_windows_shortcut(script_path):
         bat_desktop = desktop / f"{APP_NAME}.bat"
         shutil.copy(launcher, bat_desktop)
         log(f"Desktop launcher created: {bat_desktop}")
-
+ 
 def create_mac_app(script_path):
     """Create a .app bundle on Mac that double-clicks like a native app."""
     desktop  = Path.home() / "Desktop"
     app_path = desktop / f"{APP_NAME}.app"
-
+ 
+    # Remove existing app if present so we get a clean install
+    if app_path.exists():
+        shutil.rmtree(app_path)
+ 
     # App bundle structure
     contents  = app_path / "Contents"
     macos_dir = contents / "MacOS"
     macos_dir.mkdir(parents=True, exist_ok=True)
-
+ 
     # Info.plist
     (contents / "Info.plist").write_text(f"""<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
@@ -156,18 +160,33 @@ def create_mac_app(script_path):
 </dict>
 </plist>
 """, encoding='utf-8')
-
+ 
     # Launcher shell script inside the bundle
     launcher = macos_dir / "launcher"
     python_exe = globals().get('_venv_python', sys.executable)
+    # Use the absolute python path but fall back through common locations
     launcher.write_text(
-        f'#!/bin/bash\n'
-        f'exec "{python_exe}" "{script_path}"\n'
+        f'''#!/bin/bash
+# Try the python that ran the installer first, then fall back to common paths
+PYTHON="{python_exe}"
+if [ ! -f "$PYTHON" ]; then
+    for P in /usr/local/bin/python3 /opt/homebrew/bin/python3 /usr/bin/python3; do
+        if [ -f "$P" ]; then PYTHON="$P"; break; fi
+    done
+fi
+exec "$PYTHON" "{script_path}"
+''', encoding='utf-8'
     )
     launcher.chmod(0o755)
-
+ 
+    # Remove quarantine flag so Gatekeeper doesn't block it
+    try:
+        subprocess.run(['xattr', '-rd', 'com.apple.quarantine', str(app_path)],
+                      capture_output=True)
+    except Exception:
+        pass
     log(f"Mac app created: {app_path}")
-
+ 
 def create_update_script():
     """Create a small update helper the user can run to force an update."""
     updater = INSTALL_DIR / "update.py"
@@ -190,7 +209,7 @@ def create_update_script():
         encoding='utf-8'
     )
     log(f"Update helper created: {updater}")
-
+ 
 # ── Main installer ─────────────────────────────────────────────────────────
 def main():
     print()
@@ -199,7 +218,7 @@ def main():
     print("  Installer")
     print("=" * 55)
     print()
-
+ 
     # Step 1: Check Python
     print("[ 1/5 ] Checking Python...")
     if not python_ok():
@@ -213,12 +232,12 @@ def main():
         input("\n  Press Enter to exit...")
         sys.exit(1)
     log(f"Python {sys.version.split()[0]} — OK")
-
+ 
     # Step 2: Create install directory
     print("\n[ 2/5 ] Setting up install folder...")
     INSTALL_DIR.mkdir(parents=True, exist_ok=True)
     log(f"Install folder: {INSTALL_DIR}")
-
+ 
     # Step 3: Install dependencies
     print("\n[ 3/5 ] Installing dependencies...")
     log("This may take a minute on first run...")
@@ -229,12 +248,12 @@ def main():
         print(f"\n  ERROR: Failed to install dependencies: {e}")
         input("\n  Press Enter to exit...")
         sys.exit(1)
-
+ 
     # Step 4: Download the app script
     print("\n[ 4/5 ] Downloading app...")
     script_path = INSTALL_DIR / SCRIPT_NAME
     downloaded  = download_script(GITHUB_RAW_URL, script_path)
-
+ 
     if not downloaded:
         # If download failed, check if we have a local copy to use
         local = Path(__file__).parent / SCRIPT_NAME
@@ -246,7 +265,7 @@ def main():
             print(f"  Please check your internet connection and try again.")
             input("\n  Press Enter to exit...")
             sys.exit(1)
-
+ 
     # Step 5: Create shortcut
     print("\n[ 5/5 ] Creating desktop shortcut...")
     try:
@@ -270,10 +289,10 @@ def main():
     except Exception as e:
         log(f"Warning: Could not create desktop shortcut: {e}")
         log(f"You can still run the app directly from: {script_path}")
-
+ 
     # Create update helper
     create_update_script()
-
+ 
     # Done
     print()
     print("=" * 55)
@@ -287,9 +306,9 @@ def main():
     print(f"  {INSTALL_DIR}")
     print("=" * 55)
     print()
-
+ 
     if IS_WINDOWS:
         input("  Press Enter to close...")
-
+ 
 if __name__ == '__main__':
     main()
