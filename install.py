@@ -163,18 +163,25 @@ def create_mac_app(script_path):
  
     # Launcher shell script inside the bundle
     launcher = macos_dir / "launcher"
-    python_exe = globals().get('_venv_python', sys.executable)
-    # Use the absolute python path but fall back through common locations
+    # Use the actual Python that ran the installer — guaranteed to work
+    # since it just successfully ran this code
+    python_exe = globals().get('_venv_python') or sys.executable
+ 
+    # Verify it's a real path before writing it
+    if not Path(python_exe).exists():
+        # Search common Mac locations as fallback
+        for candidate in [
+            '/usr/local/bin/python3',
+            '/opt/homebrew/bin/python3',
+            '/usr/bin/python3',
+        ]:
+            if Path(candidate).exists():
+                python_exe = candidate
+                break
+ 
     launcher.write_text(
         f'''#!/bin/bash
-# Try the python that ran the installer first, then fall back to common paths
-PYTHON="{python_exe}"
-if [ ! -f "$PYTHON" ]; then
-    for P in /usr/local/bin/python3 /opt/homebrew/bin/python3 /usr/bin/python3; do
-        if [ -f "$P" ]; then PYTHON="$P"; break; fi
-    done
-fi
-exec "$PYTHON" "{script_path}"
+exec "{python_exe}" "{script_path}"
 ''', encoding='utf-8'
     )
     launcher.chmod(0o755)
