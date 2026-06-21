@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
 Mosferics Price List Generator
-Version: 1.0.0
+Version: 1.0.1
 """
 
 # ── Version — increment this whenever you push an update ──────────────────
-VERSION = "1.0.0"
+VERSION = "1.0.1"
 
 # ── Update URL — replace with your GitHub raw file URL after setup ─────────
 UPDATE_URL = "https://raw.githubusercontent.com/alt-ts/mosferics-tools/refs/heads/main/generate_price_list.py"
