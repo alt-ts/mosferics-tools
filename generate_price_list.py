@@ -376,8 +376,27 @@ def generate_pdf(grouped_products, list_name, output_path):
  
 # ── GUI ────────────────────────────────────────────────────────────────────
 def main():
-    import tkinter as tk
-    from tkinter import filedialog, messagebox, ttk
+    # Check tkinter is available — Homebrew Python on Mac often lacks it
+    try:
+        import tkinter as tk
+        from tkinter import filedialog, messagebox, ttk
+    except ImportError:
+        import subprocess, sys
+        # Try to show an OS-level error dialog
+        msg = (
+            "Mosferics Price List Generator could not start.\n\n"
+            "The required 'tkinter' module is missing from your Python installation.\n\n"
+            "Fix: open Terminal and run:\n"
+            "  conda install tk\n\n"
+            "Or reinstall using your original Python (miniconda/anaconda)."
+        )
+        if sys.platform == 'darwin':
+            subprocess.run(['osascript', '-e',
+                f'display dialog "{msg}" buttons {{"OK"}} default button "OK" '
+                f'with title "Mosferics — Missing Dependency"'])
+        else:
+            print(msg)
+        sys.exit(1)
  
     # Check for updates first — 5 second timeout so it never hangs
     if check_for_update():
