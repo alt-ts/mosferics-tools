@@ -22,7 +22,7 @@ import shutil
 from pathlib import Path
 
 # ── Configuration — update these to match your GitHub details ─────────────
-GITHUB_RAW_URL = "https://raw.githubusercontent.com/alt-ts/mosferics-tools/main/generate_price_list.py"
+GITHUB_RAW_URL = "https://raw.githubusercontent.com/alt-ts/mosferics-tools/refs/heads/main/generate_price_list.py"
 APP_NAME       = "Mosferics Price List Generator"
 SCRIPT_NAME    = "generate_price_list.py"
 
