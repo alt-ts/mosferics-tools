@@ -8,7 +8,7 @@ Version: 1.0.4
 VERSION = "1.0.4"
 
 # ── Update URL — replace with your GitHub raw file URL after setup ─────────
-UPDATE_URL = "https://raw.githubusercontent.com/alt-ts/mosferics-tools/main/generate_price_list.py"
+UPDATE_URL = "https://raw.githubusercontent.com/alt-ts/mosferics-tools/refs/heads/main/generate_price_list.py"
 
 import os, sys, io, tempfile, datetime, base64, re
 from pathlib import Path
