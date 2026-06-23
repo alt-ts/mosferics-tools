@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
 Mosferics Price List Generator
-Version: 1.0.3
+Version: 1.0.4
 """
 
 # ── Version — increment this whenever you push an update ──────────────────
-VERSION = "1.0.3"
+VERSION = "1.0.4"
 
 # ── Update URL — replace with your GitHub raw file URL after setup ─────────
 UPDATE_URL = "https://raw.githubusercontent.com/alt-ts/mosferics-tools/main/generate_price_list.py"
@@ -30,15 +30,23 @@ def check_for_update(silent=False):
     # Don't update if running as a frozen PyInstaller exe during development
     # (comment out this block once you're happy with updates working)
  
-    try:
-        req = urllib.request.Request(
-            UPDATE_URL,
-            headers={'Cache-Control': 'no-cache', 'User-Agent': 'MosfericsUpdater/1.0'}
-        )
-        with urllib.request.urlopen(req, timeout=5) as resp:
-            remote_src = resp.read().decode('utf-8')
-    except Exception:
-        # No internet or URL not set up yet — silently continue
+    import ssl
+    remote_src = None
+    for verified in [True, False]:
+        try:
+            ctx = ssl.create_default_context() if verified else ssl._create_unverified_context()
+            req = urllib.request.Request(
+                UPDATE_URL,
+                headers={'Cache-Control': 'no-cache', 'User-Agent': 'MosfericsUpdater/1.0'}
+            )
+            with urllib.request.urlopen(req, timeout=5, context=ctx) as resp:
+                remote_src = resp.read().decode('utf-8')
+            break
+        except Exception:
+            if verified:
+                continue  # retry without SSL verification
+            return False  # both attempts failed — silently skip update check
+    if not remote_src:
         return False
  
     # Extract remote version
